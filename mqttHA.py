@@ -1,10 +1,18 @@
 import paho.mqtt.client as mqtt
 import json
 from time import time, sleep, localtime, strftime
+import doorControl
+import temperatureControl
+
 
 
 base_topic = 'homeassistant'
 mqtt_client = None
+
+last_temp = None
+last_humidity = None
+last_heater = None
+last_door = None
 
 # Eclipse Paho callbacks - http://www.eclipse.org/paho/clients/python/docs/#callbacks
 def on_connect(client, userdata, flags, rc):
@@ -33,12 +41,29 @@ def on_log(client, userdata, level, buff):  # mqtt logs function
 
 def on_message(client, userdata, message):
     print('MQTT message on '+message.topic+" "+str(message.payload))
+    if "heater" in message.topic:
+        if "ON" in str(message.payload):
+            temperatureControl.turnHeaterOn()
+        elif "OFF" in str(message.payload):
+            temperatureControl.turnHeaterOff()
+        sleep(0.5)
+        publishHAStatus(last_temp, last_humidity, temperatureControl.isHeaterOn(), last_door)
+    elif "door" in message.topic:
+        if "OPEN" in str(message.payload):
+            doorControl.openDoor()
+        elif "CLOSE" in str(message.payload):
+            doorControl.closeDoor()
+        sleep(5)
+        publishHAStatus(last_temp, last_humidity, last_heater, doorControl.getDoorOpenPercentage())
+        sleep(5)
+        publishHAStatus(last_temp, last_humidity, last_heater, doorControl.getDoorOpenPercentage())
+    
 
 
 def initialize(mqttHost, mqttUser, mqttPwd):
     global mqtt_client 
     mqtt_client = mqtt.Client()
-    #mqtt_client.on_log = on_log
+    mqtt_client.on_log = on_log
     mqtt_client.on_connect = on_connect
     mqtt_client.on_publish = on_publish
     mqtt_client.on_message = on_message
@@ -88,7 +113,7 @@ def publishHADiscover():
     payload['name'] = "Winter Coop Humidity"
     payload['device_class'] = 'humidity'
     payload['unique_id']= "winter_coop_humidity"
-    print('Publishing to MQTT topic "homeassistant/sensor/winter_coop/humidity/config"')
+    #print('Publishing to MQTT topic "homeassistant/sensor/winter_coop/humidity/config"')
     mqtt_client.publish('homeassistant/sensor/winter_coop/humidity/config', json.dumps(payload), 1, True)
 
     payload = dict(base_payload.items())
@@ -97,7 +122,7 @@ def publishHADiscover():
     payload['value_template'] = "{{ value_json.door_percent }}"
     payload['name'] = "Winter Coop Door Percent"
     payload['unique_id']= "winter_coop_door_percent"
-    print('Publishing to MQTT topic "homeassistant/sensor/winter_coop/door_percent/config"')
+    #print('Publishing to MQTT topic "homeassistant/sensor/winter_coop/door_percent/config"')
     mqtt_client.publish('homeassistant/sensor/winter_coop/door_percent/config', json.dumps(payload), 1, True)
 
 
@@ -107,7 +132,7 @@ def publishHADiscover():
     payload['name'] = "Winter Coop Heater"
     payload['command_topic'] = 'homeassistant/winter_coop/heater/set'
     payload['unique_id']= "winter_coop_heater"
-    print('Publishing to MQTT topic "homeassistant/switch/winter_coop/heater/config"')
+    #print('Publishing to MQTT topic "homeassistant/switch/winter_coop/heater/config"')
     mqtt_client.publish('homeassistant/switch/winter_coop/heater/config', json.dumps(payload), 1, True)
 
     #publish door discovery
@@ -116,24 +141,37 @@ def publishHADiscover():
     payload['name'] = "Winter Coop Door"
     payload['command_topic'] = 'homeassistant/winter_coop/door/set'
     payload['unique_id']= "winter_coop_door"
-    print('Publishing to MQTT topic "homeassistant/cover/winter_coop/door/config"')
+    #print('Publishing to MQTT topic "homeassistant/cover/winter_coop/door/config"')
     mqtt_client.publish('homeassistant/cover/winter_coop/door/config', json.dumps(payload), 1, True)
 
 def publishHAStatus( temperature, humidity, heater, door_percent ):
+    global last_temp
+    global last_humidity
+    global last_heater
+    global last_door
+
     data = dict()
-    data['humidity'] = '{0:0f}'.format(humidity)
-    data['temperature'] = '{0:0.1f}'.format(temperature)
-    if heater == True:
-        data['heater'] = 'ON'
-    else:
-        data['heater'] = 'OFF'
-    if door_percent >= 85.0:
-        data['door_status'] = 'open'
-    else:
-        data['door_status'] = 'closed'
-    data['door_percent'] = "{:.0f}".format(door_percent)
-    print('Result: {}'.format(json.dumps(data)))
-    print('Publishing to MQTT topic "homeassistant/winter_coop/state"')
+    if humidity != None:
+        data['humidity'] = '{0:.0f}'.format(humidity)
+        last_humidity = humidity
+    if temperature != None:    
+        data['temperature'] = '{0:0.1f}'.format(temperature)
+        last_temp = temperature
+    if heater != None:
+        if heater == True:
+            data['heater'] = 'ON'
+        else:
+            data['heater'] = 'OFF'
+        last_heater = heater
+    if door_percent != None:
+        if door_percent >= 85.0:
+            data['door_status'] = 'open'
+        elif door_percent <= 5.0:
+            data['door_status'] = 'closed'
+        data['door_percent'] = "{:.0f}".format(door_percent)
+        last_door = door_percent
+    #print('Result: {}'.format(json.dumps(data)))
+    #print('Publishing to MQTT topic "homeassistant/winter_coop/state"')
     mqtt_client.publish('homeassistant/winter_coop/state', json.dumps(data))
     sleep(0.5) # some slack for the publish roundtrip and callback function
-    print('Status messages published')
+    #print('Status messages published')
