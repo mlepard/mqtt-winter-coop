@@ -121,7 +121,7 @@ def publishHADiscover():
 
 def publishHAStatus( temperature, humidity, heater, door_percent ):
     data = dict()
-    data['humidity'] = '{0:0.1f}'.format(humidity)
+    data['humidity'] = '{0:0f}'.format(humidity)
     data['temperature'] = '{0:0.1f}'.format(temperature)
     if heater == True:
         data['heater'] = 'ON'
@@ -131,7 +131,7 @@ def publishHAStatus( temperature, humidity, heater, door_percent ):
         data['door_status'] = 'open'
     else:
         data['door_status'] = 'closed'
-    data['door_percent'] = door_percent
+    data['door_percent'] = "{:.0f}".format(door_percent)
     print('Result: {}'.format(json.dumps(data)))
     print('Publishing to MQTT topic "homeassistant/winter_coop/state"')
     mqtt_client.publish('homeassistant/winter_coop/state', json.dumps(data))
