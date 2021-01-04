@@ -19,8 +19,8 @@ mqttHA.initialize('192.168.30.8', 'UserMQTT', 'MQTT')
 mqttHA.publishHADiscover()
 GPIO.setwarnings(False)
 temperatureControl.initTempControl(temperaturePin,heaterPin)
-doorControl.setupDoorSensor(potPin, 1, 1800, 560, 1950, 318)
-doorControl.setupMotorControl(motorPin, 255, 4.0, 1)
+doorControl.setupDoorSensor(potPin, 1, 1800, 700, 1950, 450)
+doorControl.setupMotorControl(motorPin, 175, 5.0, 1)
 
 # Sensor data retrieval and publication
 while True:
@@ -28,6 +28,7 @@ while True:
     temp, humidity = temperatureControl.getTemperatureAndHumidity()
     heater_on = temperatureControl.isHeaterOn()
     door_percent = doorControl.getDoorOpenPercentage()
+#    print(doorControl.getPotReading())
     if humidity is None and temp is None:
         print('Unable to get data form sensor.')
         continue

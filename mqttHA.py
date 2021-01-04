@@ -53,9 +53,6 @@ def on_message(client, userdata, message):
             doorControl.openDoor()
         elif "CLOSE" in str(message.payload):
             doorControl.closeDoor()
-        sleep(5)
-        publishHAStatus(last_temp, last_humidity, last_heater, doorControl.getDoorOpenPercentage())
-        sleep(5)
         publishHAStatus(last_temp, last_humidity, last_heater, doorControl.getDoorOpenPercentage())
     
 
@@ -63,7 +60,7 @@ def on_message(client, userdata, message):
 def initialize(mqttHost, mqttUser, mqttPwd):
     global mqtt_client 
     mqtt_client = mqtt.Client()
-    mqtt_client.on_log = on_log
+#    mqtt_client.on_log = on_log
     mqtt_client.on_connect = on_connect
     mqtt_client.on_publish = on_publish
     mqtt_client.on_message = on_message
@@ -97,7 +94,7 @@ def publishHADiscover():
     base_payload['device'] = deviceDetails
 
     payload = dict(base_payload.items())
-    payload['expire_after'] = "{}".format(2*300)
+    payload['expire_after'] = "{}".format(3*300)
     payload['unit_of_measurement'] = '°C'
     payload['value_template'] = "{{ value_json.temperature }}"
     payload['name'] = "Winter Coop Temperature"
@@ -107,7 +104,7 @@ def publishHADiscover():
     mqtt_client.publish('homeassistant/sensor/winter_coop/temperature/config', json.dumps(payload), 1, True)
 
     payload = dict(base_payload.items())
-    payload['expire_after'] = "{}".format(2*300)
+    payload['expire_after'] = "{}".format(3*300)
     payload['unit_of_measurement'] = '%'
     payload['value_template'] = "{{ value_json.humidity }}"
     payload['name'] = "Winter Coop Humidity"
@@ -117,7 +114,7 @@ def publishHADiscover():
     mqtt_client.publish('homeassistant/sensor/winter_coop/humidity/config', json.dumps(payload), 1, True)
 
     payload = dict(base_payload.items())
-    payload['expire_after'] = "{}".format(2*300)
+    payload['expire_after'] = "{}".format(3*300)
     payload['unit_of_measurement'] = '%'
     payload['value_template'] = "{{ value_json.door_percent }}"
     payload['name'] = "Winter Coop Door Percent"
@@ -166,7 +163,7 @@ def publishHAStatus( temperature, humidity, heater, door_percent ):
     if door_percent != None:
         if door_percent >= 85.0:
             data['door_status'] = 'open'
-        elif door_percent <= 5.0:
+        elif door_percent <= 10.0:
             data['door_status'] = 'closed'
         data['door_percent'] = "{:.0f}".format(door_percent)
         last_door = door_percent
