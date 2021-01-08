@@ -136,6 +136,7 @@ def publishHADiscover():
     payload = dict(base_payload.items())
     payload['value_template'] = "{{ value_json.door_status }}"
     payload['name'] = "Winter Coop Door"
+    payload['device_class'] = 'door'
     payload['command_topic'] = 'homeassistant/winter_coop/door/set'
     payload['unique_id']= "winter_coop_door"
     #print('Publishing to MQTT topic "homeassistant/cover/winter_coop/door/config"')
@@ -165,6 +166,8 @@ def publishHAStatus( temperature, humidity, heater, door_percent ):
             data['door_status'] = 'open'
         elif door_percent <= 10.0:
             data['door_status'] = 'closed'
+        else:
+            data['door_status'] = 'closing'
         data['door_percent'] = "{:.0f}".format(door_percent)
         last_door = door_percent
     #print('Result: {}'.format(json.dumps(data)))
