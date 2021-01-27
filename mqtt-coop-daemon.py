@@ -15,7 +15,7 @@ printDebug = True
 daemon_enabled = True
 sleep_period = 300
 
-mqttHA.initialize('192.168.30.8', 'UserMQTT', 'MQTT')
+mqttHA.initialize('192.168.30.7', 'UserMQTT', 'MQTT')
 mqttHA.publishHADiscover()
 GPIO.setwarnings(False)
 temperatureControl.initTempControl(temperaturePin,heaterPin)
